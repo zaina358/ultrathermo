@@ -8,6 +8,36 @@ import torch
 from torchvision import transforms
 from PIL import Image
  
+import RPi.GPIO as GPIO
+import time
+
+# Pin configuration
+OUTPUT_PIN = 17
+
+# Setup GPIO mode
+GPIO.setmode(GPIO.BCM)  # Use BCM numbering
+GPIO.setup(OUTPUT_PIN, GPIO.OUT)  # Set pin as output
+
+# try:
+#     # Provide voltage to pin 17
+#     print(f"Setting GPIO pin {OUTPUT_PIN} to HIGH.")
+#     GPIO.output(OUTPUT_PIN, GPIO.HIGH)
+    
+#     # Keep the pin HIGH for 10 seconds (for demonstration)
+#     time.sleep(10)
+    
+#     # Optional: Turn the pin LOW
+#     print(f"Setting GPIO pin {OUTPUT_PIN} to LOW.")
+#     GPIO.output(OUTPUT_PIN, GPIO.LOW)
+
+# except KeyboardInterrupt:
+#     print("Script interrupted by user.")
+
+# finally:
+#     # Cleanup GPIO settings
+#     GPIO.cleanup()
+#     print("GPIO cleanup completed.")
+
 
 # Load the model architecture
 model = EfficientNet.from_pretrained('efficientnet-b0')
@@ -77,7 +107,13 @@ def main():
         for frame in input_container.decode(video=0):
             # Convert the frame to a numpy array
             frame_array = np.array(frame.to_image())
-            print(is_fire(frame.to_image()))
+            
+            fire,prob=is_fire(frame.to_image())
+            print("fire prob",fire,prob)
+            if fire:
+                GPIO.output(OUTPUT_PIN, GPIO.HIGH)
+            else:
+                GPIO.output(OUTPUT_PIN, GPIO.LOW)
             # frame_array = np.flip(frame_array, axis=0)  # Flip vertically if needed
 
             # Recolor the frame
