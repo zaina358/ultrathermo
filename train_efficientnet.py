@@ -86,7 +86,7 @@ for epoch in range(num_epochs):
     epoch_loss = running_loss / len(train_loader)
     epoch_accuracy = correct / total * 100
 
-    print(f'Epoch [{
+    print(f'Epoch [{\
           epoch+1}/{num_epochs}], Loss: {epoch_loss:.4f}, Accuracy: {epoch_accuracy:.2f}%')
 
 
@@ -125,4 +125,4 @@ val_accuracy = correct / total * 100
 
 print(f'Validation Loss: {val_loss:.4f}, Accuracy: {val_accuracy:.2f}%')
 
-torch.save(model.state_dict(), 'fire_detection_model.pth')
+torch.save(model.state_dict(), 'fire_detection_model_zaina.pth')

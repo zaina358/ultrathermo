@@ -15,7 +15,7 @@ model._fc = torch.nn.Sequential(
 )
 
 # Load the trained weights
-model.load_state_dict(torch.load('fire_detection_model.pth'))
+model.load_state_dict(torch.load('fire_detection_model_zaina.pth'))
 model.eval()  # Set the model to evaluation mode
 
 # Move the model to the appropriate device (CPU or GPU)
@@ -32,7 +32,7 @@ transform = transforms.Compose([
 ])
 
 # Load an image to classify
-img_path = 'image2.png'  # Replace with the path to your image
+img_path = 'image7.png'  # Replace with the path to your image
 image = Image.open(img_path).convert('RGB')  # Open image and convert to RGB
 
 # Apply the transformations to the image
