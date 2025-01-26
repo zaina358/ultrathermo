@@ -8,15 +8,15 @@ import torch
 from torchvision import transforms
 from PIL import Image
  
-import RPi.GPIO as GPIO
+# import RPi.GPIO as GPIO
 import time
 
 # Pin configuration
 OUTPUT_PIN = 17
 
 # Setup GPIO mode
-GPIO.setmode(GPIO.BCM)  # Use BCM numbering
-GPIO.setup(OUTPUT_PIN, GPIO.OUT)  # Set pin as output
+# GPIO.setmode(GPIO.BCM)  # Use BCM numbering
+# GPIO.setup(OUTPUT_PIN, GPIO.OUT)  # Set pin as output
 
 # try:
 #     # Provide voltage to pin 17
@@ -110,10 +110,10 @@ def main():
             
             fire,prob=is_fire(frame.to_image())
             print("fire prob",fire,prob)
-            if fire:
-                GPIO.output(OUTPUT_PIN, GPIO.HIGH)
-            else:
-                GPIO.output(OUTPUT_PIN, GPIO.LOW)
+            # if fire:
+            #     GPIO.output(OUTPUT_PIN, GPIO.HIGH)
+            # else:
+            #     GPIO.output(OUTPUT_PIN, GPIO.LOW)
             # frame_array = np.flip(frame_array, axis=0)  # Flip vertically if needed
 
             # Recolor the frame

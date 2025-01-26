@@ -86,9 +86,7 @@ for epoch in range(num_epochs):
     epoch_loss = running_loss / len(train_loader)
     epoch_accuracy = correct / total * 100
 
-    print(f'Epoch [{\
-          epoch+1}/{num_epochs}], Loss: {epoch_loss:.4f}, Accuracy: {epoch_accuracy:.2f}%')
-
+    print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {epoch_loss:.4f}, Accuracy: {epoch_accuracy:.2f}%')
 
 # Evaluation on validation set
 
