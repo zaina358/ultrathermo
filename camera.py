@@ -1,140 +1,85 @@
 import numpy as np
 import pygame
-import av
 from pygame.locals import *
 
+from picamera2 import Picamera2
 from efficientnet_pytorch import EfficientNet
 import torch
 from torchvision import transforms
 from PIL import Image
- 
-# import RPi.GPIO as GPIO
 import time
 
-# Pin configuration
-OUTPUT_PIN = 17
+# Pin configuration (Uncomment if using GPIO)
+# import RPi.GPIO as GPIO
+# OUTPUT_PIN = 17
+# GPIO.setmode(GPIO.BCM)
+# GPIO.setup(OUTPUT_PIN, GPIO.OUT)
 
-# Setup GPIO mode
-# GPIO.setmode(GPIO.BCM)  # Use BCM numbering
-# GPIO.setup(OUTPUT_PIN, GPIO.OUT)  # Set pin as output
-
-# try:
-#     # Provide voltage to pin 17
-#     print(f"Setting GPIO pin {OUTPUT_PIN} to HIGH.")
-#     GPIO.output(OUTPUT_PIN, GPIO.HIGH)
-    
-#     # Keep the pin HIGH for 10 seconds (for demonstration)
-#     time.sleep(10)
-    
-#     # Optional: Turn the pin LOW
-#     print(f"Setting GPIO pin {OUTPUT_PIN} to LOW.")
-#     GPIO.output(OUTPUT_PIN, GPIO.LOW)
-
-# except KeyboardInterrupt:
-#     print("Script interrupted by user.")
-
-# finally:
-#     # Cleanup GPIO settings
-#     GPIO.cleanup()
-#     print("GPIO cleanup completed.")
-
-
-# Load the model architecture
+# Load the model
 model = EfficientNet.from_pretrained('efficientnet-b0')
-
-# Modify the final layer for binary classification
 model._fc = torch.nn.Sequential(
     torch.nn.Dropout(0.2),
-    # Single output for binary classification
     torch.nn.Linear(model._fc.in_features, 1),
-    torch.nn.Sigmoid()  # Sigmoid activation for binary classification
+    torch.nn.Sigmoid()
 )
-
-# Load the trained weights
 model.load_state_dict(torch.load('fire_detection_model_zaina.pth'))
-model.eval()  # Set the model to evaluation mode
+model.eval()
 
-# Move the model to the appropriate device (CPU or GPU)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = model.to(device)
+model.to(device)
 
-# Define the image transform (same as used during training)
+# Image preprocessing
 transform = transforms.Compose([
-    # Resize to 224x224 as expected by EfficientNet
     transforms.Resize((224, 224)),
-    transforms.ToTensor(),  # Convert image to tensor
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
-                         0.229, 0.224, 0.225])  # Normalize with ImageNet stats
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-
 def is_fire(image):
-
-    # # Load an image to classify
-    # img_path = 'image7.png'  # Replace with the path to your image
-    # image = Image.open(img_path).convert('RGB')  # Open image and convert to RGB
-
-    # Apply the transformations to the image
-    input_tensor = transform(image)
-
-    # Add batch dimension (PyTorch expects a batch of images)
-    input_tensor = input_tensor.unsqueeze(0).to(device)  # Shape: [1, 3, 224, 224]
-
-    # Perform inference (forward pass)
-    with torch.no_grad():  # No need to compute gradients during inference
+    input_tensor = transform(image).unsqueeze(0).to(device)
+    with torch.no_grad():
         output = model(input_tensor)
-
-    # The output is a probability (since we used Sigmoid in the final layer)
-    probability = output.item()  # Get the probability as a scalar
-
-    # Set threshold to classify
+    probability = output.item()
     threshold = 0.95
-    return False if probability > 1- threshold else True, probability
-    # prediction = 'no fire' if probability > threshold else 'fire'
+    return probability > threshold, probability
 
 def main():
     pygame.init()
-
-    # Set up the display
     screen_width, screen_height = 640, 480
     screen = pygame.display.set_mode((screen_width, screen_height))
-    pygame.display.set_caption("Camera Recolor")
+    pygame.display.set_caption("Fire Detection with Pi Camera")
 
-    # Initialize the camera using PyAV
-    input_container = av.open("/dev/video0", format="v4l2")  # Change to 0 or other index on Windows
+    # Initialize Pi Camera
+    picam2 = Picamera2()
+    config = picam2.create_preview_configuration(main={"size": (640, 480)})
+    picam2.configure(config)
+    picam2.start()
 
     try:
-        for frame in input_container.decode(video=0):
-            # Convert the frame to a numpy array
-            frame_array = np.array(frame.to_image())
-            
-            fire,prob=is_fire(frame.to_image())
-            print("fire prob",fire,prob)
-            # if fire:
-            #     GPIO.output(OUTPUT_PIN, GPIO.HIGH)
-            # else:
-            #     GPIO.output(OUTPUT_PIN, GPIO.LOW)
-            # frame_array = np.flip(frame_array, axis=0)  # Flip vertically if needed
+        while True:
+            frame_array = picam2.capture_array()
+            image = Image.fromarray(frame_array)
 
-            # Recolor the frame
-            # recolored_frame = recolor_frame(frame_array)
+            fire_detected, prob = is_fire(image)
+            print(f"Fire Detection: {fire_detected}, Probability: {prob:.4f}")
 
-            recolored_frame = frame_array
+            # Uncomment to control GPIO
+            # GPIO.output(OUTPUT_PIN, GPIO.HIGH if fire_detected else GPIO.LOW)
 
-            # Display the recolored frame
-            surface = pygame.surfarray.make_surface(np.transpose(recolored_frame, (1, 0, 2)))
+            # Convert and display the frame
+            surface = pygame.surfarray.make_surface(np.transpose(frame_array, (1, 0, 2)))
             screen.blit(surface, (0, 0))
             pygame.display.flip()
 
-            # Check for quit events
+            # Quit event
             for event in pygame.event.get():
                 if event.type == QUIT or (event.type == KEYDOWN and event.key == K_q):
                     return
 
     finally:
-        # Release resources and quit pygame
-        input_container.close()
+        picam2.close()
         pygame.quit()
+        # GPIO.cleanup()
 
 if __name__ == "__main__":
     main()
