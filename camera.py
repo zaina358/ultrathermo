@@ -1,19 +1,11 @@
 import numpy as np
 import pygame
+import cv2  # OpenCV for camera input
 from pygame.locals import *
-
-from picamera2 import Picamera2
 from efficientnet_pytorch import EfficientNet
 import torch
 from torchvision import transforms
 from PIL import Image
-import time
-
-# Pin configuration (Uncomment if using GPIO)
-# import RPi.GPIO as GPIO
-# OUTPUT_PIN = 17
-# GPIO.setmode(GPIO.BCM)
-# GPIO.setup(OUTPUT_PIN, GPIO.OUT)
 
 # Load the model
 model = EfficientNet.from_pretrained('efficientnet-b0')
@@ -47,27 +39,30 @@ def main():
     pygame.init()
     screen_width, screen_height = 640, 480
     screen = pygame.display.set_mode((screen_width, screen_height))
-    pygame.display.set_caption("Fire Detection with Pi Camera")
+    pygame.display.set_caption("Fire Detection with Raspberry Pi Camera")
 
-    # Initialize Pi Camera
-    picam2 = Picamera2()
-    config = picam2.create_preview_configuration(main={"size": (640, 480)})
-    picam2.configure(config)
-    picam2.start()
+    # Initialize Raspberry Pi Camera
+    cap = cv2.VideoCapture(0, cv2.CAP_V4L2)  # Works for most RPi cameras
+
+    if not cap.isOpened():
+        print("Error: Could not access Raspberry Pi Camera")
+        return
 
     try:
         while True:
-            frame_array = picam2.capture_array()
-            image = Image.fromarray(frame_array)
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            # Convert frame from OpenCV (BGR) to PIL (RGB)
+            image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
             fire_detected, prob = is_fire(image)
             print(f"Fire Detection: {fire_detected}, Probability: {prob:.4f}")
 
-            # Uncomment to control GPIO
-            # GPIO.output(OUTPUT_PIN, GPIO.HIGH if fire_detected else GPIO.LOW)
-
             # Convert and display the frame
-            surface = pygame.surfarray.make_surface(np.transpose(frame_array, (1, 0, 2)))
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
+            surface = pygame.surfarray.make_surface(np.transpose(frame, (1, 0, 2)))
             screen.blit(surface, (0, 0))
             pygame.display.flip()
 
@@ -77,9 +72,8 @@ def main():
                     return
 
     finally:
-        picam2.close()
+        cap.release()
         pygame.quit()
-        # GPIO.cleanup()
 
 if __name__ == "__main__":
     main()
