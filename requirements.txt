@@ -38,3 +38,4 @@ torch==2.5.1
 torchvision==0.20.1
 triton==3.1.0
 typing_extensions==4.12.2
+picamera2==0.3.13 
